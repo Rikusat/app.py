@@ -1,69 +1,51 @@
 import streamlit as st
+import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from geopy.geocoders import Nominatim
-import pandas as pd
 
-# ----------------------------
-# 仮データの設定
-# ----------------------------
-data = [
-    {"name": "サンプル物件A", "address": "東京都渋谷区渋谷1-1-1", "rent": 120000},
-    {"name": "サンプル物件B", "address": "東京都新宿区西新宿2-2-2", "rent": 95000},
-    {"name": "サンプル物件C", "address": "東京都品川区大井3-3-3", "rent": 110000},
-]
+st.set_page_config(page_title="通勤時間物件マップ", layout="wide")
 
-# ----------------------------
-# ジオコーディング（緯度経度取得）
-# ----------------------------
-geolocator = Nominatim(user_agent="real_estate_app")
-for d in data:
-    location = geolocator.geocode(d["address"])
-    if location:
-        d["lat"] = location.latitude
-        d["lon"] = location.longitude
-    else:
-        d["lat"], d["lon"] = None, None
+st.title("🚃 通勤時間で探せる物件マップ")
 
-# ----------------------------
-# Streamlit UI
-# ----------------------------
-st.set_page_config(layout="wide")
-st.title("通える物件マップ（デモ）")
+# 出発駅の選択（ダミー）
+station = st.selectbox("出発駅を選択してください", ["東京駅", "新宿駅", "渋谷駅"])
+max_time = st.slider("通勤時間（分）", min_value=10, max_value=60, value=30)
 
-station_input = st.text_input("出発地（駅名などを入力）", "東京駅")
+# 仮の物件データ（緯度経度付き）
+dummy_data = pd.DataFrame([
+    {"name": "物件A", "address": "千代田区1-1-1", "rent": 120000, "lat": 35.681236, "lon": 139.767125},
+    {"name": "物件B", "address": "中央区2-2-2", "rent": 100000, "lat": 35.673343, "lon": 139.770987},
+    {"name": "物件C", "address": "新宿区3-3-3", "rent": 90000,  "lat": 35.693825, "lon": 139.703356},
+])
 
-# 地図の初期表示位置
-start_location = geolocator.geocode(station_input)
-if start_location:
-    map_center = [start_location.latitude, start_location.longitude]
-else:
-    st.warning("出発地の位置を取得できませんでした。")
-    map_center = [35.681236, 139.767125]  # 東京駅座標
+# 出発駅の緯度経度（仮）
+station_coords = {
+    "東京駅": (35.681236, 139.767125),
+    "新宿駅": (35.689634, 139.700582),
+    "渋谷駅": (35.658034, 139.701636),
+}
 
-m = folium.Map(location=map_center, zoom_start=12)
+# Foliumマップの作成
+m = folium.Map(location=station_coords[station], zoom_start=12)
 
-# 出発地のマーカー
+# 出発地マーカー
 folium.Marker(
-    location=map_center,
-    popup=f"出発地：{station_input}",
-    icon=folium.Icon(color="blue", icon="train", prefix="fa")
+    location=station_coords[station],
+    popup=f"出発駅：{station}",
+    icon=folium.Icon(color="blue")
 ).add_to(m)
 
 # 物件マーカー
-for d in data:
-    if d["lat"] and d["lon"]:
-        popup_text = f"{d['name']}\n家賃: ¥{d['rent']:,}"
-        folium.Marker(
-            location=[d["lat"], d["lon"]],
-            popup=popup_text,
-            icon=folium.Icon(color="green", icon="home", prefix="fa")
-        ).add_to(m)
+for _, row in dummy_data.iterrows():
+    folium.Marker(
+        location=(row["lat"], row["lon"]),
+        popup=f'{row["name"]}<br>家賃: ¥{row["rent"]:,}',
+        icon=folium.Icon(color="green")
+    ).add_to(m)
 
-# 地図描画
-st_data = st_folium(m, width=800, height=600)
+# 地図表示
+st_folium(m, width=700, height=500)
 
-# 一覧表示
+# テーブル表示
 st.subheader("物件一覧")
-st.dataframe(pd.DataFrame(data))
-
+st.dataframe(dummy_data[["name", "address", "rent"]])
