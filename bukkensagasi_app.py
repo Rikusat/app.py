@@ -1,63 +1,38 @@
 import pandas as pd
 import folium
 import streamlit as st
-from math import radians, sin, cos, sqrt, atan2
 import requests
-import streamlit.components.v1 as components
 import googlemaps
+import streamlit.components.v1 as components
+from math import radians, sin, cos, sqrt, atan2
 
-# Google Maps APIキーをStreamlit Secretsから取得
+# Google Maps APIキーを取得
 google_maps_api_key = st.secrets["google_maps"]["api_key"]
-
-# Google Maps APIクライアントの設定
 gmaps = googlemaps.Client(key=google_maps_api_key)
 
 # Haversineの公式を使用して、2点間の距離を計算
 def calculate_distance(lat1, lon1, lat2, lon2):
-    # 地球の半径 (km)
     R = 6371.0
-
-    # 緯度経度をラジアンに変換
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-
-    # 緯度差と経度差を計算
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-
-    # 距離計算
     a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c  # 距離を計算 (km)
 
-    distance = R * c  # 距離を計算 (km)
-    return distance
-
-# 駅の緯度経度データ（例）
+# バス停と駅のサンプルデータ
 stations = {
     "渋谷駅": {"lat": 35.658034, "lon": 139.701636},
     "新宿駅": {"lat": 35.6895, "lon": 139.6917},
     "池袋駅": {"lat": 35.7333, "lon": 139.7113},
     "東京駅": {"lat": 35.681236, "lon": 139.767125},
-    # 他の駅を追加することができます
 }
 
-# バス停の緯度経度データ（仮）
 bus_stops = {
     "渋谷バス停": {"lat": 35.658500, "lon": 139.701800},
     "新宿バス停": {"lat": 35.6898, "lon": 139.6921},
     "池袋バス停": {"lat": 35.7335, "lon": 139.7118},
-    # 他のバス停を追加することができます
 }
-
-# Google Maps Directions APIを利用してバス停から駅までのルートを取得
-def get_bus_route(start_lat, start_lon, end_lat, end_lon, api_key):
-    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={start_lat},{start_lon}&destination={end_lat},{end_lon}&mode=transit&transit_mode=bus&key={api_key}"
-    response = requests.get(url)
-    directions = response.json()
-    if directions['status'] == 'OK':
-        route = directions['routes'][0]
-        return route['overview_polyline']['points']
-    else:
-        return None
 
 # データ読み込み関数
 @st.cache_data
@@ -69,13 +44,10 @@ def load_data():
     df.rename(columns=lambda x: x.strip(), inplace=True)
     return df
 
-# サイドバーに駅選択と家賃フィルタを表示
+# 駅とバス停の選択
 st.sidebar.title("物件検索")
 selected_station = st.sidebar.selectbox("駅を選んでください", list(stations.keys()))
-
-# 選ばれた駅の緯度経度を取得
-station_lat = stations[selected_station]["lat"]
-station_lon = stations[selected_station]["lon"]
+selected_bus_stop = st.sidebar.selectbox("バス停を選んでください", list(bus_stops.keys()))
 
 # 家賃スライダー
 min_rent, max_rent = st.sidebar.slider(
@@ -86,54 +58,39 @@ min_rent, max_rent = st.sidebar.slider(
     step=5000,
 )
 
-# バス停選択
-selected_bus_stop = st.sidebar.selectbox("バス停を選んでください", list(bus_stops.keys()))
+# 選択された駅とバス停の緯度経度
+station_lat, station_lon = stations[selected_station]["lat"], stations[selected_station]["lon"]
+bus_lat, bus_lon = bus_stops[selected_bus_stop]["lat"], bus_stops[selected_bus_stop]["lon"]
 
-# バス停の緯度経度を取得
-bus_lat = bus_stops[selected_bus_stop]["lat"]
-bus_lon = bus_stops[selected_bus_stop]["lon"]
+# バス停から駅までのルートをGoogle Maps Directions APIで取得
+def get_bus_route(start_lat, start_lon, end_lat, end_lon):
+    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={start_lat},{start_lon}&destination={end_lat},{end_lon}&mode=transit&transit_mode=bus&key={google_maps_api_key}"
+    response = requests.get(url)
+    directions = response.json()
+    if directions['status'] == 'OK':
+        route = directions['routes'][0]
+        return route['overview_polyline']['points']
+    return None
 
-# Google Maps APIキー（ここに自分のAPIキーを設定）
-api_key = google_maps_api_key
+# バスルートを取得
+route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon)
 
-# バス停から駅までのルートを取得
-route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon, api_key)
-
-# データの読み込み
+# データの読み込みとフィルタリング
 property_data = load_data()
-
-# 家賃でフィルタリング
 filtered_data = property_data[(property_data['家賃'] >= min_rent) & (property_data['家賃'] <= max_rent)]
 
-# 駅との距離を計算して、距離が近い順に並べ替え
+# 駅との距離を計算して並べ替え
 filtered_data['駅からの距離'] = filtered_data.apply(
     lambda row: calculate_distance(station_lat, station_lon, row['緯度'], row['経度']),
     axis=1
 )
 
-# バス停との距離を計算
-filtered_data['バス停からの距離'] = filtered_data.apply(
-    lambda row: calculate_distance(bus_lat, bus_lon, row['緯度'], row['経度']),
-    axis=1
-)
-
-sorted_data = filtered_data.sort_values(by='駅からの距離')
-
-# 地図に物件をマーカーとして追加
+# 地図に物件、駅、バス停を表示
 m = folium.Map(location=[station_lat, station_lon], zoom_start=14)
 
-# バス停と駅を地図にマーカーとして追加
-folium.Marker(
-    location=[bus_lat, bus_lon],
-    popup=f"{selected_bus_stop} (バス停)",
-    icon=folium.Icon(color="green", icon="cloud"),
-).add_to(m)
-
-folium.Marker(
-    location=[station_lat, station_lon],
-    popup=f"{selected_station} (駅)",
-    icon=folium.Icon(color="red", icon="cloud"),
-).add_to(m)
+# 駅とバス停のマーカーを追加
+folium.Marker([station_lat, station_lon], popup=f"{selected_station} (駅)", icon=folium.Icon(color="red", icon="cloud")).add_to(m)
+folium.Marker([bus_lat, bus_lon], popup=f"{selected_bus_stop} (バス停)", icon=folium.Icon(color="green", icon="cloud")).add_to(m)
 
 # バスルートを地図に追加
 if route_polyline:
@@ -145,14 +102,14 @@ if route_polyline:
     ).add_to(m)
 
 # 物件のマーカーを追加
-for _, row in sorted_data.iterrows():
+for _, row in filtered_data.iterrows():
     folium.Marker(
         location=(row["緯度"], row["経度"]),
-        popup=f"{row['物件名']} - ¥{row['家賃']:,}<br>駅からの距離: {row['駅からの距離']:.2f} km<br>バス停からの距離: {row['バス停からの距離']:.2f} km",
-        icon=folium.Icon(color="blue", icon="home")
+        popup=f"{row['物件名']} - ¥{row['家賃']:,}<br>駅からの距離: {row['駅からの距離']:.2f} km",
+        icon=folium.Icon(color="blue", icon="home"),
     ).add_to(m)
 
-# 地図をStreamlitに表示
+# 地図を表示
 st.write("物件の地図（駅とバス停から近い順）")
-map_html = m._repr_html_()  # foliumマップをHTML形式に変換
-components.html(map_html, height=600)  # StreamlitでHTMLを埋め込む
+map_html = m._repr_html_()
+components.html(map_html, height=600)
