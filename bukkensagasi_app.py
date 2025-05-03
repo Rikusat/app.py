@@ -2,6 +2,7 @@ import pandas as pd
 import folium
 import streamlit as st
 from math import radians, sin, cos, sqrt, atan2
+import streamlit.components.v1 as components
 
 # Haversineの公式を使用して、2点間の距離を計算
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -78,5 +79,5 @@ for _, row in sorted_data.iterrows():
 
 # 地図をStreamlitに表示
 st.write("物件の地図（駅を中心に近い順）")
-st.write(m)
-
+map_html = m._repr_html_()  # foliumマップをHTML形式に変換
+components.html(map_html, height=600)  # StreamlitでHTMLを埋め込む
