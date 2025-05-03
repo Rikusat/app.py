@@ -21,7 +21,9 @@ with st.sidebar:
 # ------------------------------
 # Google SheetsのURL設定（CSV形式）
 # ------------------------------
-sheet_url = "https://docs.google.com/spreadsheets/d/1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ/gviz/tq?tqx=out:csv"
+sheet_id = "1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ"  # Google SheetsのID
+sheet_name = "bukken"  # シート名（適宜変更）
+sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
 
 # ------------------------------
 # Google Sheetsからデータを取得
