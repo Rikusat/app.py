@@ -42,19 +42,25 @@ def load_data():
     df.rename(columns=lambda x: x.strip(), inplace=True)
     return df
 
-# ユーザーが選べる駅を表示
-selected_station = st.selectbox("駅を選んでください", list(stations.keys()))
+# サイドバーに駅選択と家賃フィルタを表示
+st.sidebar.title("物件検索")
+selected_station = st.sidebar.selectbox("駅を選んでください", list(stations.keys()))
 
 # 選ばれた駅の緯度経度を取得
 station_lat = stations[selected_station]["lat"]
 station_lon = stations[selected_station]["lon"]
 
+# 家賃スライダー
+min_rent, max_rent = st.sidebar.slider(
+    "家賃を選んでください",
+    min_value=0,
+    max_value=500000,
+    value=(0, 300000),
+    step=5000,
+)
+
 # データの読み込み
 property_data = load_data()
-
-# 家賃フィルター
-min_rent = st.number_input("最小家賃", min_value=0, step=1000)
-max_rent = st.number_input("最大家賃", min_value=0, step=1000)
 
 # 家賃でフィルタリング
 filtered_data = property_data[(property_data['家賃'] >= min_rent) & (property_data['家賃'] <= max_rent)]
