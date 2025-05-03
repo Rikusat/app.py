@@ -4,6 +4,13 @@ import streamlit as st
 from math import radians, sin, cos, sqrt, atan2
 import requests
 import streamlit.components.v1 as components
+import googlemaps
+
+ Streamlit SecretsからGoogle Maps APIキーを取得
+google_maps_api_key = st.secrets["google_maps"]["api_key"]
+
+# Google Maps APIクライアントの設定
+gmaps = googlemaps.Client(key=google_maps_api_key)
 
 # Haversineの公式を使用して、2点間の距離を計算
 def calculate_distance(lat1, lon1, lat2, lon2):
