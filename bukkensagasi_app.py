@@ -96,3 +96,10 @@ for _, row in property_data.iterrows():
 # ------------------------------
 with st.expander("📄 テーブル形式で表示"):
     st.dataframe(property_data[["name", "address", "rent"]])
+
+# データフレームのカラム名を表示
+st.write(dummy_data.columns)
+
+# データフレームの最初の数行を表示して内容を確認
+st.write(dummy_data.head())
+
