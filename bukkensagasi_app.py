@@ -19,19 +19,17 @@ with st.sidebar:
     max_time = st.slider("最大通勤時間（分）", min_value=10, max_value=60, value=30)
 
 # ------------------------------
-# Google SheetsのURL設定
+# Google SheetsのURL設定（CSV形式）
 # ------------------------------
-sheet_id = "1PmOf1bjCpLGm7DiF7dJsuKBne2XWkmHyo20BS4xgizw"
-sheet_name = "charlas"
-url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+sheet_url = "https://docs.google.com/spreadsheets/d/1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ/gviz/tq?tqx=out:csv"
 
 # ------------------------------
 # Google Sheetsからデータを取得
 # ------------------------------
-@st.cache
+@st.cache_data
 def load_data():
     # pandasでCSV形式でデータを取得
-    data = pd.read_csv(url)
+    data = pd.read_csv(sheet_url)
     return data
 
 # 物件データを取得
@@ -96,4 +94,3 @@ for _, row in property_data.iterrows():
 # ------------------------------
 with st.expander("📄 テーブル形式で表示"):
     st.dataframe(property_data[["name", "address", "rent"]])
-
