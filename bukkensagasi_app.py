@@ -6,7 +6,6 @@ import requests
 import streamlit.components.v1 as components
 import googlemaps
 
- Streamlit SecretsからGoogle Maps APIキーを取得
 google_maps_api_key = st.secrets["google_maps"]["api_key"]
 
 # Google Maps APIクライアントの設定
