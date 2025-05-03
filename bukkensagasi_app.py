@@ -68,3 +68,32 @@ if not property_data.empty:
     st_folium(m, width=700, height=500)
 else:
     st.write("物件データが取得できませんでした。")
+
+import time
+import requests
+
+def get_properties(api_key, retries=3, delay=2):
+    url = f"https://api.example.com/properties?api_key={api_key}"
+    
+    for attempt in range(retries):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # HTTPエラーステータスを確認
+            return response.json()  # 成功した場合、JSONデータを返す
+        except requests.exceptions.RequestException as e:
+            if attempt < retries - 1:
+                st.warning(f"接続エラーが発生しました。{delay}秒後に再試行します...")
+                time.sleep(delay)  # リトライまでの待機時間
+            else:
+                st.error(f"エラーが発生しました: {e}")
+                return None  # 最後のリトライでも失敗した場合はNoneを返す
+
+# APIから物件情報を取得
+property_data = get_properties(api_key)
+
+if property_data:
+    # データ処理・表示のコード
+    st.write(property_data)
+else:
+    st.write("物件情報の取得に失敗しました。")
+
