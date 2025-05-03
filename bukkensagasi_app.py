@@ -6,6 +6,7 @@ import requests
 import streamlit.components.v1 as components
 import googlemaps
 
+# Google Maps APIキーをStreamlit Secretsから取得
 google_maps_api_key = st.secrets["google_maps"]["api_key"]
 
 # Google Maps APIクライアントの設定
@@ -93,7 +94,7 @@ bus_lat = bus_stops[selected_bus_stop]["lat"]
 bus_lon = bus_stops[selected_bus_stop]["lon"]
 
 # Google Maps APIキー（ここに自分のAPIキーを設定）
-api_key = "YOUR_GOOGLE_MAPS_API_KEY"
+api_key = google_maps_api_key
 
 # バス停から駅までのルートを取得
 route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon, api_key)
@@ -155,3 +156,4 @@ for _, row in sorted_data.iterrows():
 st.write("物件の地図（駅とバス停から近い順）")
 map_html = m._repr_html_()  # foliumマップをHTML形式に変換
 components.html(map_html, height=600)  # StreamlitでHTMLを埋め込む
+
