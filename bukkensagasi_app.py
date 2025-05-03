@@ -2,61 +2,52 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from geopy.distance import geodesic
 
-# データ読み込み関数
-@st.cache_data
-def load_data():
-    sheet_id = "1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ"
-    sheet_name = "bukken"
-    sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-    df = pd.read_csv(sheet_url)
-    df.rename(columns=lambda x: x.strip(), inplace=True)
-    return df
+# 駅の緯度経度リスト
+station_coords = {
+    "東京駅": (35.681236, 139.767125),
+    "新宿駅": (35.689487, 139.700302),
+    "渋谷駅": (35.658034, 139.701636),
+    "上野駅": (35.713768, 139.777254),
+    "品川駅": (35.628471, 139.73876),
+}
 
-# データ取得
+# 駅選択
+selected_station = st.selectbox("駅を選択してください", list(station_coords.keys()))
+
+# 家賃フィルター（元のままでOK）
+min_rent, max_rent = st.slider("家賃の範囲（円）", 50000, 200000, (80000, 150000))
+
+# データ読み込み（キャッシュ関数のまま）
 property_data = load_data()
 
-# Sidebar フィルター
-st.sidebar.header("検索条件")
+# フィルター処理
+filtered_data = property_data[
+    (property_data["家賃"] >= min_rent) & (property_data["家賃"] <= max_rent)
+].copy()
 
-# 家賃フィルター
-min_rent = int(property_data["家賃"].min())
-max_rent = int(property_data["家賃"].max())
-
-rent_range = st.sidebar.slider(
-    "家賃の範囲 (円)",
-    min_value=min_rent,
-    max_value=max_rent,
-    value=(min_rent, max_rent),
-    step=10000
+# 距離計算
+station_latlon = station_coords[selected_station]
+filtered_data["距離（km）"] = filtered_data.apply(
+    lambda row: geodesic(station_latlon, (row["緯度"], row["経度"])).km,
+    axis=1
 )
 
-# エリアフィルター（住所に含まれる文字列）
-address_options = sorted(property_data["住所"].apply(lambda x: x[:3]).unique())
-selected_areas = st.sidebar.multiselect("エリアで絞り込み", address_options, default=address_options)
-
-# フィルター適用
-filtered_data = property_data[
-    (property_data["家賃"] >= rent_range[0]) &
-    (property_data["家賃"] <= rent_range[1]) &
-    (property_data["住所"].str[:3].isin(selected_areas))
-]
+# 距離順にソート
+filtered_data = filtered_data.sort_values("距離（km）")
 
 # 地図表示
-m = folium.Map(location=[35.681236, 139.767125], zoom_start=12)
+m = folium.Map(location=station_latlon, zoom_start=12)
+folium.Marker(location=station_latlon, popup=f"{selected_station}（基準駅）", icon=folium.Icon(color="red")).add_to(m)
 
-# マーカー追加
 for _, row in filtered_data.iterrows():
     folium.Marker(
         location=(row["緯度"], row["経度"]),
-        popup=f"{row['物件名']} - ¥{row['家賃']:,}",
+        popup=f"{row['物件名']} - ¥{row['家賃']:,}（{row['距離（km）']:.2f}km）",
         icon=folium.Icon(color="blue", icon="home", prefix="fa")
     ).add_to(m)
 
-# 結果表示
-st.subheader("検索結果")
-st.write(f"{len(filtered_data)} 件の物件が見つかりました。")
-st.dataframe(filtered_data)
-
-# 地図描画
-st_folium(m, width=700, height=500)
+# 表示
+st.write("物件一覧（近い順）", filtered_data[["物件名", "住所", "家賃", "距離（km）"]])
+st_data = st_folium(m, width=700)
