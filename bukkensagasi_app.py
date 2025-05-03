@@ -57,9 +57,9 @@ m = folium.Map(location=station_coords[station], zoom_start=12, control_scale=Tr
 
 # 出発地マーカー
 folium.Marker(
-    location=station_coords[station],
-    popup=f"出発駅：{station}",
-    icon=folium.Icon(color="blue", icon="train", prefix='fa')
+    location=(row["緯度"], row["経度"]),
+    popup=f"{row['物件名']} - ¥{row['家賃']:,}",
+    icon=folium.Icon(color="blue", icon="home", prefix="fa")
 ).add_to(m)
 
 st.write("カラム一覧:", property_data.columns.tolist())
