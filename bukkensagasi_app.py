@@ -72,6 +72,9 @@ def get_bus_route(start_lat, start_lon, end_lat, end_lon):
     response = requests.get(url)
     directions = response.json()
 
+    # APIレスポンス全体を表示してデバッグ
+    st.write(f"APIレスポンス: {directions}")
+
     # directionsが正常に返されたか確認
     if 'status' in directions and directions['status'] == 'OK':
         # ルートが存在するか確認
