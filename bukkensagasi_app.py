@@ -34,6 +34,9 @@ def load_data():
     data = pd.read_csv(sheet_url)
     return data
 
+st.write("読み込んだデータのカラム一覧:", property_data.columns.tolist())
+
+
 # 物件データを取得
 property_data = load_data()
 
