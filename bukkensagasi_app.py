@@ -1,41 +1,70 @@
 import streamlit as st
 import requests
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 
-# 不動産APIのエンドポイント
-API_URL = "https://api.realestateapi.com/v1/properties"
+# secrets.tomlからAPIキーを取得
+api_key = st.secrets["realestateapi"]["api_key"]
 
-# APIの取得関数
-def fetch_properties():
-    # 必要なパラメータを指定してAPIを呼び出し
-    params = {
-        "city": "Tokyo",  # 都市名を指定（例：東京）
-        "min_price": 50000,  # 最小価格
-        "max_price": 200000,  # 最大価格
-        "page": 1  # 1ページ目のデータ
-    }
-    
-    # APIリクエスト
-    response = requests.get(API_URL, params=params)
-    
+# APIキーを使用した処理
+st.write(f"取得したAPIキー: {api_key}")
+
+# APIから物件情報を取得する関数
+def get_properties(api_key):
+    url = f"https://api.example.com/properties?api_key={api_key}"  # APIのURLを変更
+    response = requests.get(url)
     if response.status_code == 200:
-        return response.json()  # JSON形式でレスポンスを返す
+        data = response.json()
+        return pd.DataFrame(data["properties"])
     else:
-        st.error(f"APIリクエストエラー: {response.status_code}")
-        return []
+        st.error(f"API呼び出し失敗: {response.status_code}")
+        return pd.DataFrame()
 
-# 物件データの取得
-property_data = fetch_properties()
+# 物件データをAPIから取得
+property_data = get_properties(api_key)
 
-# 物件データがある場合、表示
-if property_data:
-    # 物件情報のDataFrame作成
-    df = pd.DataFrame(property_data)
-    
-    # 物件一覧表示
-    st.subheader("物件一覧")
-    st.write(f"{len(df)} 件の物件が見つかりました。")
-    st.dataframe(df)
+# データが取得できた場合、物件情報を表示
+if not property_data.empty:
+    st.subheader("物件情報")
+
+    # Sidebar フィルター
+    st.sidebar.header("検索条件")
+
+    # 家賃フィルター
+    min_rent = int(property_data["rent"].min())
+    max_rent = int(property_data["rent"].max())
+
+    rent_range = st.sidebar.slider(
+        "家賃の範囲 (円)",
+        min_value=min_rent,
+        max_value=max_rent,
+        value=(min_rent, max_rent),
+        step=10000
+    )
+
+    # フィルター適用
+    filtered_data = property_data[
+        (property_data["rent"] >= rent_range[0]) & 
+        (property_data["rent"] <= rent_range[1])
+    ]
+
+    # 結果表示
+    st.write(f"{len(filtered_data)} 件の物件が見つかりました。")
+    st.dataframe(filtered_data)
+
+    # 地図表示
+    m = folium.Map(location=[35.681236, 139.767125], zoom_start=12)
+
+    # マーカー追加
+    for _, row in filtered_data.iterrows():
+        folium.Marker(
+            location=(row["latitude"], row["longitude"]),
+            popup=f"{row['name']} - ¥{row['rent']:,}",
+            icon=folium.Icon(color="blue", icon="home", prefix="fa")
+        ).add_to(m)
+
+    # 地図描画
+    st_folium(m, width=700, height=500)
 else:
-    st.write("物件情報は見つかりませんでした。")
-
+    st.write("物件データが取得できませんでした。")
