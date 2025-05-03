@@ -18,21 +18,16 @@ with st.sidebar:
     station = st.selectbox("出発駅", ["東京駅", "新宿駅", "渋谷駅"])
     max_time = st.slider("最大通勤時間（分）", min_value=10, max_value=60, value=30)
 
-# ------------------------------
-# Google SheetsのURL設定（CSV形式）
-# ------------------------------
-sheet_id = "1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ"  # Google SheetsのID
-sheet_name = "bukken"  # シート名（適宜変更）
-sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-
-# ------------------------------
-# Google Sheetsからデータを取得
-# ------------------------------
+# データ読み込み
 @st.cache_data
 def load_data():
-    # pandasでCSV形式でデータを取得
+    sheet_id = "1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ"
+    sheet_name = "bukken1"
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     data = pd.read_csv(sheet_url)
+    data.rename(columns=lambda x: x.strip(), inplace=True)  # 空白除去
     return data
+
 
 st.write("読み込んだデータのカラム一覧:", property_data.columns.tolist())
 
