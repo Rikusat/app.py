@@ -62,12 +62,16 @@ folium.Marker(
     icon=folium.Icon(color="blue", icon="train", prefix='fa')
 ).add_to(m)
 
+st.write("カラム一覧:", property_data.columns.tolist())
+
 # 物件マーカー
-for _, row in property_data.iterrows():
+for idx, row in filtered_data.iterrows():
     folium.Marker(
-        location=(row["lat"], row["lon"]),
-        popup=f'{row["name"]}<br>家賃: ¥{row["rent"]:,}',
-        icon=folium.Icon(color="green", icon="home", prefix='fa')
+        location=(row["緯度"], row["経度"]),
+        popup=f"{row['物件名']} - ¥{row['家賃']:,}",
+        icon=folium.Icon(color="blue", icon="home"),
+    ).add_to(m)
+en", icon="home", prefix='fa')
     ).add_to(m)
 
 # 地図表示
