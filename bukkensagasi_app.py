@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 @st.cache_data
 def load_data():
     sheet_id = "1bVzMw7TcnzGnqZWS6bjt1K5uopZWXjYWcHeFV3AgehQ"
-    sheet_name = "シート1"
+    sheet_name = "bukken"
     sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(sheet_url)
     df.rename(columns=lambda x: x.strip(), inplace=True)
