@@ -2,6 +2,7 @@ import pandas as pd
 import folium
 import streamlit as st
 from math import radians, sin, cos, sqrt, atan2
+import requests
 import streamlit.components.v1 as components
 
 # Haversineの公式を使用して、2点間の距離を計算
@@ -40,6 +41,17 @@ bus_stops = {
     # 他のバス停を追加することができます
 }
 
+# Google Maps Directions APIを利用してバス停から駅までのルートを取得
+def get_bus_route(start_lat, start_lon, end_lat, end_lon, api_key):
+    url = f"https://maps.googleapis.com/maps/api/directions/json?origin={start_lat},{start_lon}&destination={end_lat},{end_lon}&mode=transit&transit_mode=bus&key={api_key}"
+    response = requests.get(url)
+    directions = response.json()
+    if directions['status'] == 'OK':
+        route = directions['routes'][0]
+        return route['overview_polyline']['points']
+    else:
+        return None
+
 # データ読み込み関数
 @st.cache_data
 def load_data():
@@ -74,6 +86,12 @@ selected_bus_stop = st.sidebar.selectbox("バス停を選んでください", li
 bus_lat = bus_stops[selected_bus_stop]["lat"]
 bus_lon = bus_stops[selected_bus_stop]["lon"]
 
+# Google Maps APIキー（ここに自分のAPIキーを設定）
+api_key = "YOUR_GOOGLE_MAPS_API_KEY"
+
+# バス停から駅までのルートを取得
+route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon, api_key)
+
 # データの読み込み
 property_data = load_data()
 
@@ -96,6 +114,28 @@ sorted_data = filtered_data.sort_values(by='駅からの距離')
 
 # 地図に物件をマーカーとして追加
 m = folium.Map(location=[station_lat, station_lon], zoom_start=14)
+
+# バス停と駅を地図にマーカーとして追加
+folium.Marker(
+    location=[bus_lat, bus_lon],
+    popup=f"{selected_bus_stop} (バス停)",
+    icon=folium.Icon(color="green", icon="cloud"),
+).add_to(m)
+
+folium.Marker(
+    location=[station_lat, station_lon],
+    popup=f"{selected_station} (駅)",
+    icon=folium.Icon(color="red", icon="cloud"),
+).add_to(m)
+
+# バスルートを地図に追加
+if route_polyline:
+    folium.PolyLine(
+        locations=folium.util.decode_polyline(route_polyline),
+        color="blue",
+        weight=5,
+        opacity=0.7,
+    ).add_to(m)
 
 # 物件のマーカーを追加
 for _, row in sorted_data.iterrows():
