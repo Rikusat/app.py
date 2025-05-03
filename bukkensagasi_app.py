@@ -156,4 +156,3 @@ for _, row in sorted_data.iterrows():
 st.write("物件の地図（駅とバス停から近い順）")
 map_html = m._repr_html_()  # foliumマップをHTML形式に変換
 components.html(map_html, height=600)  # StreamlitでHTMLを埋め込む
-
