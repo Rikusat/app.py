@@ -32,6 +32,14 @@ stations = {
     # 他の駅を追加することができます
 }
 
+# バス停の緯度経度データ（仮）
+bus_stops = {
+    "渋谷バス停": {"lat": 35.658500, "lon": 139.701800},
+    "新宿バス停": {"lat": 35.6898, "lon": 139.6921},
+    "池袋バス停": {"lat": 35.7335, "lon": 139.7118},
+    # 他のバス停を追加することができます
+}
+
 # データ読み込み関数
 @st.cache_data
 def load_data():
@@ -59,6 +67,13 @@ min_rent, max_rent = st.sidebar.slider(
     step=5000,
 )
 
+# バス停選択
+selected_bus_stop = st.sidebar.selectbox("バス停を選んでください", list(bus_stops.keys()))
+
+# バス停の緯度経度を取得
+bus_lat = bus_stops[selected_bus_stop]["lat"]
+bus_lon = bus_stops[selected_bus_stop]["lon"]
+
 # データの読み込み
 property_data = load_data()
 
@@ -66,11 +81,18 @@ property_data = load_data()
 filtered_data = property_data[(property_data['家賃'] >= min_rent) & (property_data['家賃'] <= max_rent)]
 
 # 駅との距離を計算して、距離が近い順に並べ替え
-filtered_data['距離'] = filtered_data.apply(
+filtered_data['駅からの距離'] = filtered_data.apply(
     lambda row: calculate_distance(station_lat, station_lon, row['緯度'], row['経度']),
     axis=1
 )
-sorted_data = filtered_data.sort_values(by='距離')
+
+# バス停との距離を計算
+filtered_data['バス停からの距離'] = filtered_data.apply(
+    lambda row: calculate_distance(bus_lat, bus_lon, row['緯度'], row['経度']),
+    axis=1
+)
+
+sorted_data = filtered_data.sort_values(by='駅からの距離')
 
 # 地図に物件をマーカーとして追加
 m = folium.Map(location=[station_lat, station_lon], zoom_start=14)
@@ -79,11 +101,11 @@ m = folium.Map(location=[station_lat, station_lon], zoom_start=14)
 for _, row in sorted_data.iterrows():
     folium.Marker(
         location=(row["緯度"], row["経度"]),
-        popup=f"{row['物件名']} - ¥{row['家賃']:,}",
+        popup=f"{row['物件名']} - ¥{row['家賃']:,}<br>駅からの距離: {row['駅からの距離']:.2f} km<br>バス停からの距離: {row['バス停からの距離']:.2f} km",
         icon=folium.Icon(color="blue", icon="home")
     ).add_to(m)
 
 # 地図をStreamlitに表示
-st.write("物件の地図（駅を中心に近い順）")
+st.write("物件の地図（駅とバス停から近い順）")
 map_html = m._repr_html_()  # foliumマップをHTML形式に変換
 components.html(map_html, height=600)  # StreamlitでHTMLを埋め込む
