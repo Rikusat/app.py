@@ -71,14 +71,22 @@ def get_bus_route(start_lat, start_lon, end_lat, end_lon):
     url = f"https://maps.googleapis.com/maps/api/directions/json?origin={start_lat},{start_lon}&destination={end_lat},{end_lon}&mode=transit&transit_mode=bus&key={google_maps_api_key}"
     response = requests.get(url)
     directions = response.json()
-    
-    if directions['status'] == 'OK' and 'routes' in directions:
-        route = directions['routes'][0]
-        polyline_points = route['overview_polyline']['points']
-        return polyline_points
+
+    # directionsが正常に返されたか確認
+    if 'status' in directions and directions['status'] == 'OK':
+        # ルートが存在するか確認
+        if 'routes' in directions and len(directions['routes']) > 0:
+            route = directions['routes'][0]
+            polyline_points = route['overview_polyline']['points']
+            return polyline_points
+        else:
+            st.error("バスルートは見つかりませんでした。")
+            return None
     else:
-        st.error("バスルートの取得に失敗しました。")
+        # エラーメッセージを表示
+        st.error(f"APIからエラーが返されました: {directions.get('error_message', '不明なエラー')}")
         return None
+
 
 # バスルートを取得
 route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon)
@@ -121,5 +129,3 @@ for _, row in filtered_data.iterrows():
 st.write("物件の地図（駅とバス停から近い順）")
 map_html = m._repr_html_()
 components.html(map_html, height=600)
-
-st.write(f"APIレスポンス: {directions}")
