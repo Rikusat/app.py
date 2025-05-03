@@ -6,6 +6,10 @@ import googlemaps
 import streamlit.components.v1 as components
 from math import radians, sin, cos, sqrt, atan2
 
+# Page setup
+st.set_page_config(page_title="ぶっけんさくさん　", page_icon="🏘", layout="wide")
+st.title("ぶっけんさくさん🏘")
+
 # Google Maps APIキーを取得
 google_maps_api_key = st.secrets["google_maps"]["api_key"]
 gmaps = googlemaps.Client(key=google_maps_api_key)
