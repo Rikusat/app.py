@@ -121,3 +121,5 @@ for _, row in filtered_data.iterrows():
 st.write("物件の地図（駅とバス停から近い順）")
 map_html = m._repr_html_()
 components.html(map_html, height=600)
+
+st.write(f"APIレスポンス: {directions}")
