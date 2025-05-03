@@ -67,10 +67,14 @@ def get_bus_route(start_lat, start_lon, end_lat, end_lon):
     url = f"https://maps.googleapis.com/maps/api/directions/json?origin={start_lat},{start_lon}&destination={end_lat},{end_lon}&mode=transit&transit_mode=bus&key={google_maps_api_key}"
     response = requests.get(url)
     directions = response.json()
-    if directions['status'] == 'OK':
+    
+    if directions['status'] == 'OK' and 'routes' in directions:
         route = directions['routes'][0]
-        return route['overview_polyline']['points']
-    return None
+        polyline_points = route['overview_polyline']['points']
+        return polyline_points
+    else:
+        st.error("バスルートの取得に失敗しました。")
+        return None
 
 # バスルートを取得
 route_polyline = get_bus_route(bus_lat, bus_lon, station_lat, station_lon)
